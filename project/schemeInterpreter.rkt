@@ -1,5 +1,29 @@
 #lang racket
 
+(define (search p l)
+  (and (not (null? l))
+       (or (p (car l))
+           (search p (cdr l)))))
+
+(define (make-alist fn keys)
+  (map (lambda (key) (cons key (fn key)))
+       keys))
+
+(define (assoc key alist)
+  (search (lambda (key-value-pair)
+            (and (equal? (car key-value-pair) key)
+                 key-value-pair))
+          alist))
+
+(define (del-assoc key alist)
+  (filter (lambda (key-value-pair)
+            (not (equal? (car key-value-pair) key)))
+          alist))
+
+(define (add-assoc key value alist)
+  (cons (cons key value)
+        (del-assoc key alist)))
+
 (define (interpret code)
   (if (> (length code) 1)
       (interpret (replace (cdar code) (cdr code)))
@@ -162,8 +186,9 @@
       )
   )
 
-(define code1 '[(define x 6)
-                (cond ((= x 5) 1) ((< x 5) (+ 1 1) (else 3)))])
+(define code1 '[(define (f x) (if (< x 3) (f (+ x 1)) (+ x 2)))
+                (f 1)])
+
 
 (interpret code1)
 
