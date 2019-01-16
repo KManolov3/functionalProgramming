@@ -58,16 +58,10 @@
        )
   )
 
-(define (replace-if-match definitionName definitionBody atom)
-  (if (equal? atom definitionName)
-      definitionBody
-      atom
-      )
-  )
-
 (define (evaluate clause env)
- (and
-   (println clause)
+ ;(and
+   ;(println clause)
+   ;(println env)
    (if (or (atom? clause) (null? clause))
        (if (defined-symbol? clause env)
            (get-value clause env)
@@ -99,7 +93,7 @@
                (else clause))
          )
        )
-  )
+ ; )
   )
 
 (define (defined-symbol? clause env)
@@ -142,23 +136,59 @@
   )
 
 (define (handle-lambda clause env)
-  (and
-   (println clause)
+  ;(and
+   ;(println clause)
   (if (list? (car clause))
       (calc-lambda (list-ref (car clause) 1) (list-ref (car clause) 2) (cdr clause) env)    
       clause)
-   )
+  ; )
   )
 
 (define (calc-lambda params body args env)
-  (and
-   (println params)
-   (println args)
+  ;(and
+   ;(println params)
+   ;(println args)
    (if (null? params)
        (evaluate body env)
-       (calc-lambda (cdr params) body (cdr args) (add-to-env (car params) (evaluate (car args) env) env))
+       (calc-lambda (cdr params) (replace-in-clause (car params) (evaluate (car args) env) body) (cdr args) (add-to-env (car params) (evaluate (car args) env) env))
        )
-   )
+  ; )
+  )
+
+(define (replace-in-clause param value clause)
+  (if (null? clause)
+      '()
+      (if (and
+           (non-empty-list? clause)
+           (non-empty-list? (cdr clause))
+           (definition-with-same-name-parameter? param (car clause) (cadr clause)))
+          clause
+          (if (atom? clause)
+              (replace-if-match param value clause)
+              (cons (replace-in-clause param value (car clause)) (replace-in-clause param value (cdr clause)))
+              )
+          )
+      )
+  )
+
+(define (definition-with-same-name-parameter? param clauseType clauseParams)
+  (if (or
+       (equal? clauseType 'define)
+       (equal? clauseType 'lambda)
+       )
+      (if (list? clauseParams)
+          (member param clauseParams)
+          #f
+          )
+      #f
+      )
+  )
+
+(define (replace-if-match param value atom)
+  (if (equal? atom param)
+      value
+      atom
+      )
   )
 
 (define (handle-cond cases env)
@@ -170,8 +200,13 @@
           )
       )
   )
-(define code1 '[(define (f x) (if (< x 3) (f (+ x 1)) (+ x 2)))
-                (f 1)])
+(define code1 '[(((lambda (x) (x x))
+  (lambda (plus)
+    (lambda (n)
+      (if (> n 5)
+          n
+          (+ n ((plus plus) (+ n 1)))))))
+                 5)])
 
 (interpret code1)
 ;(defined-symbol? 'f (interpret code1))
