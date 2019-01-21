@@ -59,8 +59,8 @@
   )
 
 (define (evaluate clause env)
- ;(and
-   ;(println clause)
+; (and
+  ; (println clause)
    ;(println env)
    (if (or (atom? clause) (null? clause))
        (if (defined-symbol? clause env)
@@ -79,7 +79,7 @@
                ((equal? '>= clause-op) (apply >= (map (curryr evaluate env) (cdr clause))))
                ((equal? '< clause-op) (apply < (map (curryr evaluate env) (cdr clause))))
                ((equal? '<= clause-op) (apply <= (map (curryr evaluate env) (cdr clause))))
-               ((equal? 'null? clause-op) (apply null-quoted? (map (curryr evaluate env) (cdr clause))))
+               ((equal? 'null? clause-op) (apply null? (map (curryr evaluate env) (cdr clause))))
                ((equal? 'list? clause-op) (apply list? (map (curryr evaluate env) (cdr clause))))
                ((equal? 'equal? clause-op) (apply equal? (map (curryr evaluate env) (cdr clause))))
                ((equal? '= clause-op) (apply = (map (curryr evaluate env) (cdr clause))))
@@ -87,6 +87,7 @@
                ((equal? 'cons clause-op) (apply cons (map (curryr evaluate env) (cdr clause))))
                ((equal? 'car clause-op) (apply car (map (curryr evaluate env) (cdr clause))))
                ((equal? 'cdr clause-op) (apply cdr (map (curryr evaluate env) (cdr clause))))
+               ((equal? 'quote clause-op) (car (cdr clause)))
                ((equal? 'if clause-op) (handle-if (cdr clause) env))
                ((lambda? clause-op) (handle-lambda (cons clause-op (cdr clause)) env))
                ((equal? 'cond clause-op) (handle-cond (cdr clause) env))
@@ -111,12 +112,6 @@
 
 (define (get-func-value params body)
   (list 'lambda params body)
-  )
-
-(define (null-quoted? list)
-  (or (null? list)
-      (equal? list ''())
-      )
   )
 
 (define (handle-if args env)
@@ -148,17 +143,28 @@
   ;(and
    ;(println params)
    ;(println args)
+   ;(println body)
    (if (null? params)
-       (if (> (length body) 1)
-           (calc-lambda params (cdr body) args (add-to-env (list-ref (car body) 1) (cddar body) env))
-           (evaluate (car body) env)
+       (if (nestedBody? body)
+           (if (> (length body) 1)
+               (calc-lambda params (cdr body) args (add-to-env (list-ref (car body) 1) (cddar body) env))
+               (evaluate (car body) env)
+               )
+           (evaluate body env)
            )
       (calc-lambda (cdr params) (replace-in-clause (car params) (evaluate (car args) env) body) (cdr args) (add-to-env (list (car params)) (evaluate (car args) env) env))
        )
   ;)
   )
 
-
+(define (nestedBody? body)
+  (and
+   (list? (car body))
+   (or (= (length body) 1)
+       (equal? 'define (caar body))
+       )
+   )
+  )
 
 (define (replace-in-clause param value clause)
   (if (null? clause)
@@ -206,11 +212,10 @@
       )
   )
 
-(define code1 '[(define (f x)
-                  (define z 7)
-                  (+ x z))
-                  (define y 5)
-                  ((if (null? '()) f g) y)])
+
+(define code1 '[(define (f x) (+ x 2))
+                  (define x 5)
+                  ((if (null? '()) f g) x)])
 
 (interpret code1)
 
