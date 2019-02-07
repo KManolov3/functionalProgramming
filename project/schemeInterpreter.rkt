@@ -213,10 +213,13 @@
   )
 
 
-(define code1 '[(define (f x) (+ x 2))
-                  (define x 5)
-                  ((if (null? '()) f g) x)])
 
+(define code1 '[((lambda (x)
+                   ((lambda (x)
+                      ((lambda (z) (+ x x)) 4))
+                    3)
+                   )
+                 5)])
 (interpret code1)
 
 
